@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrueMedi — Real-Time Emergency Healthcare</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04080f;--bg2:#070e1a;--surface:#0b1524;--surface2:#0f1e30;--surface3:#142540;--accent:#00c8f0;--adim:rgba(0,200,240,0.12);--orange:#ff6b2b;--odim:rgba(255,107,43,0.12);--green:#00e87a;--gdim:rgba(0,232,122,0.12);--red:#ff3366;--rdim:rgba(255,51,102,0.12);--purple:#9b5cff;--pdim:rgba(155,92,255,0.12);--text:#e2eeff;--t2:#8ba8c8;--t3:#4d6a88;--b1:rgba(0,200,240,0.1);--b2:rgba(255,255,255,0.06);--r:10px;}
+*{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+button,input,select,textarea{font-family:'Inter',sans-serif;color:inherit;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px;}
+
+/* ─── LAYOUT ─── */
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:240px;min-width:240px;background:var(--bg2);border-right:1px solid var(--b2);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:50;transition:transform .3s;}
+.logo-wrap{padding:18px;border-bottom:1px solid var(--b2);display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.logo-txt{font-family:'Bebas Neue';font-size:1.6rem;letter-spacing:2px;}.logo-txt span{color:var(--accent);}
+.snav{flex:1;padding:12px 8px;overflow-y:auto;}
+.sg{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t3);padding:0 8px;margin:14px 0 4px;}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:all .2s;margin-bottom:2px;color:var(--t2);font-size:.875rem;font-weight:500;border:1px solid transparent;}
+.ni:hover{background:var(--surface);color:var(--text);}
+.ni.active{background:var(--adim);color:var(--accent);border-color:rgba(0,200,240,.2);}
+.ni-icon{font-size:.95rem;width:20px;text-align:center;flex-shrink:0;}
+.nbadge{margin-left:auto;background:var(--red);color:#fff;font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:20px;}
+.sbot{padding:12px 10px;border-top:1px solid var(--b2);}
+.live-pill{display:flex;align-items:center;gap:7px;padding:9px 11px;background:var(--gdim);border:1px solid rgba(0,232,122,.2);border-radius:8px;font-size:.78rem;color:var(--green);font-weight:600;}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,232,122,.6);}50%{box-shadow:0 0 0 5px rgba(0,232,122,0);}}
+
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--b2);padding:0 22px;height:60px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;}
+.tb-title{font-size:.95rem;font-weight:700;flex:1;}
+.tb-title span{color:var(--t2);font-weight:400;font-size:.82rem;margin-left:5px;}
+.tb-search{flex:1;max-width:300px;position:relative;}
+.tb-search input{width:100%;background:var(--surface);border:1px solid var(--b2);color:var(--text);padding:7px 11px 7px 32px;border-radius:8px;font-size:.82rem;outline:none;transition:border-color .2s;}
+.tb-search input:focus{border-color:var(--accent);}
+.tb-search .si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:.82rem;}
+.tb-acts{display:flex;align-items:center;gap:8px;}
+.ib{width:34px;height:34px;background:var(--surface);border:1px solid var(--b2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:.88rem;transition:all .2s;}
+.ib:hover{background:var(--surface2);color:var(--text);border-color:var(--accent);}
+.content{padding:22px;flex:1;}
+.view{display:none;}.view.active{display:block;}
+
+/* ─── SOS BUTTON (floating) ─── */
+.sos-fab{
+  position:fixed;bottom:28px;right:28px;z-index:1000;
+  width:70px;height:70px;border-radius:50%;
+  background:linear-gradient(135deg,var(--red),#ff6b2b);
+  border:3px solid rgba(255,255,255,.2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 0 0 0 rgba(255,51,102,.6);
+  animation:sosPulse 2s infinite;transition:transform .2s;
+}
+.sos-fab:hover{transform:scale(1.1);}
+.sos-fab .sos-icon{font-size:1.4rem;line-height:1;}
+.sos-fab .sos-lbl{font-size:.5rem;font-weight:800;letter-spacing:2px;color:#fff;margin-top:2px;}
+@keyframes sosPulse{0%{box-shadow:0 0 0 0 rgba(255,51,102,.5);}70%{box-shadow:0 0 0 18px rgba(255,51,102,0);}100%{box-shadow:0 0 0 0 rgba(255,51,102,0);}}
+
+/* SOS ACTIVE OVERLAY */
+.sos-overlay{position:fixed;inset:0;background:rgba(255,51,102,.08);backdrop-filter:blur(2px);z-index:999;display:none;align-items:center;justify-content:center;}
+.sos-overlay.open{display:flex;}
+.sos-card{background:var(--surface);border:2px solid var(--red);border-radius:16px;padding:32px;max-width:420px;width:90%;text-align:center;position:relative;}
+.sos-card .sos-big{font-size:4rem;margin-bottom:8px;}
+.sos-card h2{font-size:1.5rem;font-weight:800;color:var(--red);margin-bottom:6px;}
+.sos-card p{color:var(--t2);font-size:.9rem;margin-bottom:24px;}
+.sos-countdown{font-family:'Bebas Neue';font-size:5rem;color:var(--red);line-height:1;margin-bottom:4px;text-shadow:0 0 30px rgba(255,51,102,.5);}
+.sos-sub{font-size:.78rem;color:var(--t2);margin-bottom:24px;}
+.sos-actions{display:flex;gap:10px;justify-content:center;}
+.sos-confirm{background:var(--red);color:#fff;border:none;border-radius:10px;padding:14px 32px;font-size:1rem;font-weight:800;cursor:pointer;flex:1;transition:all .2s;}
+.sos-confirm:hover{background:#ff1a55;transform:translateY(-1px);}
+.sos-cancel{background:var(--surface3);color:var(--t2);border:1px solid var(--b2);border-radius:10px;padding:14px 24px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.sos-cancel:hover{color:var(--text);}
+.sos-info{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;text-align:left;}
+.sos-info-row{display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:.85rem;}
+.sos-info-row .si2{font-size:1.1rem;flex-shrink:0;}
+.dispatched-card{background:var(--gdim);border:1px solid rgba(0,232,122,.3);border-radius:12px;padding:20px;text-align:center;}
+.dispatched-card h3{color:var(--green);font-size:1.2rem;font-weight:800;margin-bottom:6px;}
+.dispatched-card p{font-size:.85rem;color:var(--t2);}
+.tracking-eta{font-family:'Bebas Neue';font-size:3rem;color:var(--green);line-height:1;margin:8px 0;}
+
+/* ─── CARDS & PANELS ─── */
+.sg4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.sc{background:var(--surface);border:1px solid var(--b2);border-radius:var(--r);padding:18px;position:relative;overflow:hidden;transition:all .3s;}
+.sc:hover{border-color:var(--b1);transform:translateY(-2px);}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.sc.bl::before{background:linear-gradient(90deg,var(--accent),transparent);}
+.sc.gr::before{background:linear-gradient(90deg,var(--green),transparent);}
+.sc.or::before{background:linear-gradient(90deg,var(--orange),transparent);}
+.sc.re::before{background:linear-gradient(90deg,var(--red),transparent);}
+.sc.pu::before{background:linear-gradient(90deg,var(--purple),transparent);}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.sc-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.ic-bl{background:var(--adim)}.ic-gr{background:var(--gdim)}.ic-or{background:var(--odim)}.ic-re{background:var(--rdim)}.ic-pu{background:var(--pdim)}
+.schange{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:20px;}
+.schange.up{background:var(--gdim);color:var(--green);}
+.schange.dn{background:var(--rdim);color:var(--red);}
+.sval{font-size:1.85rem;font-weight:800;line-height:1;margin-bottom:3px;}
+.slbl{font-size:.76rem;color:var(--t2);}
+
+.panel{background:var(--surface);border:1px solid var(--b2);border-radius:var(--r);}
+.ph{padding:15px 18px;border-bottom:1px solid var(--b2);display:flex;align-items:center;justify-content:space-between;}
+.pt{font-size:.9rem;font-weight:700;}
+.ps{font-size:.76rem;color:var(--t2);margin-top:2px;}
+.pb{padding:18px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:600;}
+.badge.green{background:var(--gdim);color:var(--green);border:1px solid rgba(0,232,122,.25);}
+.badge.orange{background:var(--odim);color:var(--orange);border:1px solid rgba(255,107,43,.25);}
+.badge.red{background:var(--rdim);color:var(--red);border:1px solid rgba(255,51,102,.25);}
+.badge.blue{background:var(--adim);color:var(--accent);border:1px solid rgba(0,200,240,.25);}
+.badge.purple{background:var(--pdim);color:var(--purple);border:1px solid rgba(155,92,255,.25);}
+
+/* ─── TABLE ─── */
+.dt{width:100%;border-collapse:collapse;}
+.dt th{text-align:left;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);padding:9px 13px;border-bottom:1px solid var(--b2);background:var(--bg2);}
+.dt td{padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.03);font-size:.83rem;vertical-align:middle;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tbody tr:hover{background:var(--surface2);}
+.hn{display:flex;align-items:center;gap:9px;}
+.ha{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.ha-g{background:rgba(0,200,240,.15);}.ha-p{background:rgba(155,92,255,.15);}.ha-ph{background:rgba(0,232,122,.15);}
+.hn-name{font-weight:600;font-size:.83rem;}
+.hn-sub{font-size:.68rem;color:var(--t3);}
+.bv{display:flex;align-items:center;gap:6px;}
+.bt{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;min-width:44px;}
+.bf{height:100%;border-radius:3px;transition:width .6s;}
+.bf-g{background:var(--green)}.bf-o{background:var(--orange)}.bf-r{background:var(--red)}
+.bc-v{font-size:.72rem;font-weight:700;min-width:34px;text-align:right;}
+.eta-p{display:inline-flex;align-items:center;gap:3px;background:var(--adim);border:1px solid rgba(0,200,240,.2);color:var(--accent);padding:3px 8px;border-radius:20px;font-size:.74rem;font-weight:700;}
+
+/* ─── BUTTONS ─── */
+.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-size:.83rem;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:5px;}
+.btn-p{background:var(--accent);color:var(--bg);}.btn-p:hover{background:#19d4ff;box-shadow:0 4px 14px rgba(0,200,240,.35);}
+.btn-s{background:var(--surface3);color:var(--text);border:1px solid var(--b2);}.btn-s:hover{background:var(--surface2);border-color:var(--accent);}
+.btn-d{background:var(--red);color:#fff;}.btn-d:hover{background:#ff1a55;}
+.btn-pu{background:var(--purple);color:#fff;}.btn-pu:hover{background:#8040ff;}
+.btn-sm{padding:6px 12px;font-size:.78rem;}
+.btn-xs{padding:4px 9px;font-size:.72rem;border-radius:6px;}
+
+/* ─── SEARCH VIEW ─── */
+.shero{background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--b2);border-radius:12px;padding:26px 30px;margin-bottom:20px;position:relative;overflow:hidden;}
+.shero::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,240,.1),transparent 70%);}
+.shero h2{font-size:1.35rem;font-weight:800;margin-bottom:4px;}
+.shero p{color:var(--t2);font-size:.86rem;margin-bottom:18px;}
+.sform{display:flex;gap:9px;flex-wrap:wrap;}
+.sf{flex:1;min-width:150px;}
+.sf label{display:block;font-size:.7rem;font-weight:600;color:var(--t2);margin-bottom:4px;}
+.sf input,.sf select{width:100%;background:var(--bg2);border:1px solid var(--b2);color:var(--text);padding:9px 11px;border-radius:8px;font-size:.83rem;outline:none;transition:border-color .2s;}
+.sf input:focus,.sf select:focus{border-color:var(--accent);}
+.sf select option{background:var(--surface);}
+.hcard{background:var(--surface);border:1px solid var(--b2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:16px;transition:all .3s;cursor:pointer;position:relative;}
+.hcard:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.3);}
+.hcard.top{border-color:rgba(0,200,240,.4);box-shadow:0 0 18px rgba(0,200,240,.1);}
+.top-badge{position:absolute;top:-1px;left:16px;background:var(--accent);color:var(--bg);font-size:.6rem;font-weight:800;padding:3px 9px;border-radius:0 0 6px 6px;letter-spacing:1px;text-transform:uppercase;}
+.hc-l{flex:1;}
+.hc-name{font-size:.98rem;font-weight:700;margin-bottom:3px;}
+.hc-meta{font-size:.76rem;color:var(--t2);display:flex;gap:9px;flex-wrap:wrap;margin-bottom:11px;}
+.hc-beds{display:flex;gap:7px;flex-wrap:wrap;}
+.bchip{display:flex;flex-direction:column;align-items:center;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;min-width:58px;}
+.bchip-n{font-size:1rem;font-weight:800;line-height:1;}
+.bchip-l{font-size:.6rem;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+.bch-g{border-color:rgba(0,232,122,.3);background:var(--gdim);}.bch-g .bchip-n{color:var(--green);}
+.bch-o{border-color:rgba(255,107,43,.3);background:var(--odim);}.bch-o .bchip-n{color:var(--orange);}
+.bch-r{border-color:rgba(255,51,102,.3);background:var(--rdim);}.bch-r .bchip-n{color:var(--red);}
+.hc-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.eta-big{font-size:1.35rem;font-weight:800;color:var(--accent);}
+.eta-big span{font-size:.74rem;color:var(--t2);font-weight:400;}
+
+/* ─── LIVE MAP ─── */
+.mapview{background:var(--surface);border:1px solid var(--b2);border-radius:12px;overflow:hidden;position:relative;height:450px;background-image:linear-gradient(rgba(0,200,240,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,240,.035) 1px,transparent 1px);background-size:28px 28px;}
+.map-roads{position:absolute;inset:0;pointer-events:none;opacity:.3;}
+.map-pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;cursor:pointer;z-index:5;transition:all .2s;}
+.map-pin:hover{z-index:10;}
+.mpi{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.88rem;border:2px solid;transition:transform .2s;}
+.mpi:hover{transform:scale(1.25);}
+.mpi-g{background:var(--gdim);border-color:var(--green);color:var(--green);}
+.mpi-o{background:var(--odim);border-color:var(--orange);color:var(--orange);}
+.mpi-r{background:var(--rdim);border-color:var(--red);color:var(--red);}
+.mpi-a{background:rgba(255,107,43,.25);border-color:var(--orange);color:var(--orange);}
+.mpi-u{background:rgba(0,200,240,.25);border-color:var(--accent);color:var(--accent);}
+.map-pin-lbl{font-size:.6rem;font-weight:700;background:rgba(7,14,26,.92);border:1px solid var(--b2);padding:2px 6px;border-radius:4px;margin-top:2px;white-space:nowrap;color:var(--text);max-width:90px;overflow:hidden;text-overflow:ellipsis;}
+.map-pin::before{content:'';width:2px;height:7px;background:currentColor;opacity:.35;}
+.user-pin{position:absolute;transform:translate(-50%,-50%);width:14px;height:14px;background:var(--accent);border-radius:50%;border:3px solid #fff;z-index:8;box-shadow:0 0 0 6px rgba(0,200,240,.2),0 0 20px rgba(0,200,240,.35);animation:uping 2s infinite;}
+@keyframes uping{0%,100%{box-shadow:0 0 0 6px rgba(0,200,240,.2);}50%{box-shadow:0 0 0 12px rgba(0,200,240,.05);}}
+.ambu-pin{position:absolute;transform:translate(-50%,-50%);z-index:7;cursor:pointer;transition:all .3s;}
+.ambu-icon{width:28px;height:28px;background:var(--orange);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.9rem;box-shadow:0 0 12px rgba(255,107,43,.5);border:2px solid rgba(255,255,255,.3);}
+.ambu-icon.free{background:var(--green);box-shadow:0 0 12px rgba(0,232,122,.5);}
+.ambu-icon.dispatched{background:var(--red);box-shadow:0 0 12px rgba(255,51,102,.5);animation:dispatchBlink .8s infinite;}
+@keyframes dispatchBlink{0%,100%{opacity:1;}50%{opacity:.5;}}
+.map-legend{position:absolute;bottom:14px;left:14px;background:rgba(7,14,26,.92);border:1px solid var(--b2);border-radius:9px;padding:10px 13px;display:flex;flex-direction:column;gap:5px;z-index:6;}
+.map-controls{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:6;}
+.mc-btn{width:32px;height:32px;background:rgba(7,14,26,.92);border:1px solid var(--b2);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-weight:700;font-size:.95rem;transition:all .2s;}
+.mc-btn:hover{color:var(--accent);border-color:var(--accent);}
+.map-status-bar{position:absolute;top:14px;left:14px;background:rgba(7,14,26,.92);border:1px solid var(--b2);border-radius:9px;padding:8px 14px;z-index:6;display:flex;gap:14px;flex-wrap:wrap;}
+.msb-item{display:flex;align-items:center;gap:5px;font-size:.72rem;}
+.ldot{width:8px;height:8px;border-radius:50%;}
+
+/* Road SVG lines */
+.road-line{stroke:rgba(0,200,240,.15);stroke-width:2;fill:none;}
+.route-line{stroke:var(--accent);stroke-width:2;fill:none;stroke-dasharray:6 4;animation:dashMove 1.5s linear infinite;}
+@keyframes dashMove{to{stroke-dashoffset:-20;}}
+
+/* ─── MEDIVAULT ─── */
+.mv-hero{background:linear-gradient(135deg,var(--surface),#0d1e38);border:1px solid var(--b2);border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden;}
+.mv-hero::after{content:'🏥';position:absolute;right:24px;top:50%;transform:translateY(-50%);font-size:5rem;opacity:.06;}
+.mv-hero h2{font-size:1.4rem;font-weight:800;margin-bottom:4px;}
+.mv-hero p{color:var(--t2);font-size:.88rem;margin-bottom:20px;}
+.mv-profile{display:flex;align-items:center;gap:16px;background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:16px;margin-bottom:14px;}
+.mv-avatar{width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;}
+.mv-user-info h3{font-size:1.05rem;font-weight:700;margin-bottom:2px;}
+.mv-user-info p{font-size:.78rem;color:var(--t2);}
+.mv-id{font-family:'Space Mono';font-size:.7rem;color:var(--accent);margin-top:4px;letter-spacing:1px;}
+.mv-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--bg2);border:1px solid var(--b2);padding:4px;border-radius:9px;flex-wrap:wrap;}
+.mv-tab{flex:1;padding:8px 12px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;color:var(--t2);white-space:nowrap;}
+.mv-tab.active{background:var(--accent);color:var(--bg);}
+.mv-tab:hover:not(.active){background:var(--surface3);color:var(--text);}
+.mv-section{display:none;}.mv-section.active{display:block;}
+.doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.doc-card{background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:16px;transition:all .3s;cursor:pointer;position:relative;}
+.doc-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.doc-card .dicon{font-size:1.8rem;margin-bottom:10px;}
+.doc-card .dname{font-size:.85rem;font-weight:700;margin-bottom:3px;}
+.doc-card .dmeta{font-size:.72rem;color:var(--t2);}
+.doc-card .ddate{font-size:.68rem;color:var(--t3);margin-top:6px;}
+.doc-badge{position:absolute;top:10px;right:10px;background:var(--gdim);color:var(--green);border:1px solid rgba(0,232,122,.25);font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:20px;}
+.upload-zone{border:2px dashed var(--b2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:16px;}
+.upload-zone:hover{border-color:var(--accent);background:var(--adim);}
+.upload-zone .uz-icon{font-size:2.5rem;margin-bottom:10px;}
+.upload-zone h4{font-size:.95rem;font-weight:700;margin-bottom:4px;}
+.upload-zone p{font-size:.8rem;color:var(--t2);}
+.upload-zone input{display:none;}
+.health-timeline{display:flex;flex-direction:column;gap:0;}
+.ht-item{display:flex;gap:14px;position:relative;padding-bottom:20px;}
+.ht-item:last-child{padding-bottom:0;}
+.ht-item::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:1px;background:var(--b2);}
+.ht-item:last-child::before{display:none;}
+.ht-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;border:2px solid var(--b2);}
+.ht-content{flex:1;}
+.ht-title{font-size:.88rem;font-weight:700;margin-bottom:2px;}
+.ht-sub{font-size:.78rem;color:var(--t2);margin-bottom:4px;}
+.ht-date{font-size:.68rem;color:var(--t3);}
+.vital-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.vital-card{background:var(--bg2);border:1px solid var(--b2);border-radius:9px;padding:14px;text-align:center;}
+.vital-val{font-size:1.5rem;font-weight:800;line-height:1;margin-bottom:3px;}
+.vital-lbl{font-size:.7rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;}
+.vital-status{font-size:.68rem;margin-top:4px;}
+.vital-status.ok{color:var(--green);}
+.vital-status.warn{color:var(--orange);}
+.allergy-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:var(--rdim);border:1px solid rgba(255,51,102,.25);border-radius:20px;font-size:.78rem;font-weight:600;color:var(--red);margin:3px;}
+.med-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:var(--adim);border:1px solid rgba(0,200,240,.25);border-radius:20px;font-size:.78rem;font-weight:600;color:var(--accent);margin:3px;}
+.emg-contact{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--b2);border-radius:9px;padding:12px 15px;margin-bottom:8px;}
+.ec-avatar{width:36px;height:36px;border-radius:50%;background:var(--adim);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.ec-info{flex:1;}
+.ec-name{font-size:.85rem;font-weight:700;}
+.ec-rel{font-size:.72rem;color:var(--t2);}
+.ec-phone{font-family:'Space Mono';font-size:.76rem;color:var(--accent);}
+.share-banner{background:linear-gradient(90deg,var(--adim),var(--pdim));border:1px solid rgba(0,200,240,.25);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-top:14px;}
+.share-banner .si3{font-size:1.4rem;}
+.share-banner p{font-size:.82rem;color:var(--t2);flex:1;}
+.qr-placeholder{width:60px;height:60px;background:var(--surface3);border:1px solid var(--b2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;}
+
+/* ─── ADMIN PANEL ─── */
+.admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:16px;}
+.uc{background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:14px;}
+.uc-title{font-size:.8rem;font-weight:700;margin-bottom:11px;}
+.bu-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.bu-lbl{font-size:.74rem;color:var(--t2);}
+.cc{display:flex;align-items:center;}
+.cb{width:25px;height:25px;background:var(--surface3);border:1px solid var(--b2);color:var(--text);cursor:pointer;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.cb:first-child{border-radius:5px 0 0 5px;}.cb:last-child{border-radius:0 5px 5px 0;}
+.cb:hover{background:var(--accent);color:var(--bg);}
+.cv{min-width:32px;height:25px;background:var(--surface);border-top:1px solid var(--b2);border-bottom:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;font-family:'Space Mono';}
+.usb{width:100%;padding:7px;background:var(--adim);border:1px solid rgba(0,200,240,.25);color:var(--accent);border-radius:6px;cursor:pointer;font-size:.76rem;font-weight:700;margin-top:8px;transition:all .2s;}
+.usb:hover{background:var(--accent);color:var(--bg);}
+.saved{background:var(--gdim)!important;border-color:var(--green)!important;color:var(--green)!important;}
+
+/* ─── MODAL ─── */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;}
+.mo.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--b2);border-radius:14px;padding:24px;max-width:480px;width:90%;position:relative;max-height:90vh;overflow-y:auto;}
+.mc{position:absolute;top:12px;right:12px;background:var(--surface2);border:none;color:var(--t2);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:.88rem;display:flex;align-items:center;justify-content:center;}
+.mc:hover{color:var(--text);}
+.modal h3{font-size:1.05rem;font-weight:700;margin-bottom:4px;}
+.mdesc{color:var(--t2);font-size:.83rem;margin-bottom:16px;}
+.fg{margin-bottom:13px;}
+.fg label{display:block;font-size:.76rem;font-weight:600;color:var(--t2);margin-bottom:4px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--bg2);border:1px solid var(--b2);color:var(--text);padding:9px 11px;border-radius:8px;font-size:.83rem;outline:none;transition:border-color .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);}
+.fg textarea{resize:vertical;min-height:65px;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.cd{background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;width:100%;padding:12px;border:none;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;}
+.cd:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,51,102,.35);}
+
+/* ─── ANALYTICS ─── */
+.chart-wrap{height:160px;display:flex;align-items:flex-end;gap:4px;padding:6px 0 26px;}
+.cbar{flex:1;border-radius:4px 4px 0 0;transition:height .5s;position:relative;cursor:pointer;min-width:20px;}
+.cbar:hover{opacity:.75;}
+.cbar::after{content:attr(data-l);position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:.58rem;color:var(--t3);white-space:nowrap;}
+.ctip{position:absolute;bottom:calc(100%+5px);left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--b2);color:var(--text);font-size:.68rem;padding:3px 7px;border-radius:5px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;z-index:5;}
+.cbar:hover .ctip{opacity:1;}
+.donut-w{display:flex;align-items:center;gap:16px;}
+.dleg{display:flex;flex-direction:column;gap:6px;}
+.dli{display:flex;align-items:center;gap:7px;font-size:.78rem;}
+.ddot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ─── ALERTS ─── */
+.ai{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;background:var(--bg2);border:1px solid var(--b2);border-radius:8px;border-left:3px solid;transition:all .2s;margin-bottom:7px;}
+.ai.critical{border-left-color:var(--red);}
+.ai.warning{border-left-color:var(--orange);}
+.ai.info{border-left-color:var(--accent);}
+.ai.success{border-left-color:var(--green);}
+.ai-icon{font-size:1.05rem;flex-shrink:0;}
+.ai-title{font-size:.83rem;font-weight:600;margin-bottom:2px;}
+.ai-msg{font-size:.76rem;color:var(--t2);}
+.ai-time{font-size:.68rem;color:var(--t3);margin-left:auto;white-space:nowrap;}
+
+/* ─── REQUESTS ─── */
+.ri{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.ri:last-child{border-bottom:none;}
+.ra{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.ri-name{font-size:.83rem;font-weight:600;}
+.ri-det{font-size:.75rem;color:var(--t2);}
+.ri-r{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.ri-time{font-size:.68rem;color:var(--t3);}
+
+/* ─── TOAST ─── */
+.tc{position:fixed;top:70px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px;}
+.toast{background:var(--surface);border:1px solid var(--b2);border-radius:8px;padding:10px 13px;min-width:260px;max-width:330px;display:flex;align-items:center;gap:8px;animation:tIn .3s ease;box-shadow:0 10px 28px rgba(0,0,0,.4);}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--red);}
+.toast.info{border-left:3px solid var(--accent);}
+.toast-msg{font-size:.8rem;flex:1;}
+.toast-x{background:none;border:none;color:var(--t3);cursor:pointer;font-size:.82rem;}
+@keyframes tIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes tOut{from{opacity:1;}to{transform:translateX(100%);opacity:0;}}
+
+.stoggle{display:none;background:none;border:none;color:var(--text);font-size:1.15rem;cursor:pointer;padding:3px;}
+.soverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:45;}
+.empty{text-align:center;padding:44px 20px;color:var(--t2);}
+.empty .ei{font-size:2.6rem;margin-bottom:12px;}
+.empty h3{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:5px;}
+.empty p{font-size:.82rem;max-width:280px;margin:0 auto;}
+
+@media(max-width:1100px){.sg4{grid-template-columns:repeat(2,1fr);}.admin-grid{grid-template-columns:repeat(2,1fr);}.doc-grid{grid-template-columns:repeat(2,1fr);}.vital-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:860px){.sidebar{transform:translateX(-100%);}.sidebar.open{transform:translateX(0);}.soverlay.open{display:block;}.stoggle{display:flex;}.main{margin-left:0;}.two-col{grid-template-columns:1fr;}.sg4{grid-template-columns:1fr 1fr;}.sform{flex-direction:column;}.hcard{flex-wrap:wrap;}.hc-r{flex-direction:row;align-items:center;justify-content:space-between;width:100%;}}
+@media(max-width:540px){.sg4{grid-template-columns:1fr;}.admin-grid{grid-template-columns:1fr;}.doc-grid{grid-template-columns:1fr;}.tb-search{display:none;}.mv-tabs{overflow-x:auto;}.sos-fab{bottom:16px;right:16px;width:60px;height:60px;}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SOS OVERLAY ═══════════════════ -->
+<div class="sos-overlay" id="sosOverlay">
+  <div class="sos-card" id="sosCard">
+    <!-- State 1: Countdown -->
+    <div id="sos-state-countdown">
+      <div class="sos-big">🚨</div>
+      <h2>EMERGENCY SOS</h2>
+      <p>Dispatching ambulance to your location. Cancel if this was accidental.</p>
+      <div class="sos-countdown" id="sosCount">5</div>
+      <div class="sos-sub">seconds until dispatch</div>
+      <div class="sos-info">
+        <div class="sos-info-row"><span class="si2">📍</span><span id="sos-location">Detecting your location...</span></div>
+        <div class="sos-info-row"><span class="si2">🏥</span><span id="sos-hospital">Finding nearest hospital...</span></div>
+        <div class="sos-info-row"><span class="si2">🩺</span><span id="sos-profile">Loading your MediVault profile...</span></div>
+      </div>
+      <div class="sos-actions">
+        <button class="sos-confirm" onclick="confirmSOS()">🚑 Dispatch NOW</button>
+        <button class="sos-cancel" onclick="cancelSOS()">Cancel</button>
+      </div>
+    </div>
+    <!-- State 2: Dispatched -->
+    <div id="sos-state-dispatched" style="display:none">
+      <div class="dispatched-card">
+        <div style="font-size:3rem;margin-bottom:8px">🚑</div>
+        <h3>Ambulance Dispatched!</h3>
+        <div class="tracking-eta" id="sos-eta">7 min</div>
+        <p>AMB-07 is on the way to your location</p>
+        <p style="margin-top:8px;font-size:.8rem">📍 <span id="dispatch-hosp">SRM Medical Center</span></p>
+        <p style="margin-top:4px;font-size:.8rem;color:var(--t2)">Your emergency contacts have been notified</p>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:9px;">
+        <button class="btn btn-s" style="flex:1" onclick="closeSOS()">Track on Map</button>
+        <button class="btn btn-p" style="flex:1" onclick="closeSOS()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ AMBULANCE MODAL ═══════════════════ -->
+<div class="mo" id="ambuModal">
+  <div class="modal">
+    <button class="mc" onclick="closeModal('ambuModal')">✕</button>
+    <h3>🚑 Dispatch Ambulance</h3>
+    <p class="mdesc">To <strong id="modalHospName">—</strong></p>
+    <div class="frow">
+      <div class="fg"><label>Patient Name *</label><input type="text" id="f_name" placeholder="Full name"></div>
+      <div class="fg"><label>Age *</label><input type="number" id="f_age" placeholder="Age" min="0" max="120"></div>
+    </div>
+    <div class="fg"><label>Contact *</label><input type="tel" id="f_phone" placeholder="+91 XXXXX XXXXX"></div>
+    <div class="frow">
+      <div class="fg"><label>Emergency Type *</label>
+        <select id="f_etype"><option value="">Select</option><option>Cardiac Arrest</option><option>Stroke</option><option>Road Accident</option><option>Breathing Difficulty</option><option>Severe Injury</option><option>Maternity</option><option>Other</option></select>
+      </div>
+      <div class="fg"><label>Severity *</label>
+        <select id="f_sev"><option value="">Select</option><option value="critical">🔴 Critical</option><option value="serious">🟠 Serious</option><option value="stable">🟢 Stable</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Pickup Address *</label><input type="text" id="f_addr" placeholder="Street, area, landmark"></div>
+    <div class="fg"><label>Notes</label><textarea id="f_notes" placeholder="Additional info..."></textarea></div>
+    <button class="cd" onclick="confirmDispatch()">🚑 Confirm & Dispatch</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ UPLOAD DOC MODAL ═══════════════════ -->
+<div class="mo" id="uploadModal">
+  <div class="modal">
+    <button class="mc" onclick="closeModal('uploadModal')">✕</button>
+    <h3>📁 Upload Medical Document</h3>
+    <p class="mdesc">Add a new record to your MediVault</p>
+    <div class="fg"><label>Document Type *</label>
+      <select id="ud_type"><option value="">Select type</option><option>Prescription</option><option>Lab Report</option><option>Scan / X-Ray</option><option>Discharge Summary</option><option>Vaccination</option><option>Insurance Card</option><option>ECG Report</option><option>Allergy Report</option></select>
+    </div>
+    <div class="fg"><label>Document Name *</label><input type="text" id="ud_name" placeholder="e.g. Blood Test Report - Jan 2026"></div>
+    <div class="frow">
+      <div class="fg"><label>Date *</label><input type="date" id="ud_date"></div>
+      <div class="fg"><label>Doctor / Hospital</label><input type="text" id="ud_doc" placeholder="Dr. Name or Hospital"></div>
+    </div>
+    <div class="fg"><label>Notes / Diagnosis</label><textarea id="ud_notes" placeholder="Summary or important notes..."></textarea></div>
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+      <div class="uz-icon">📎</div>
+      <h4>Click to attach file</h4>
+      <p>PDF, JPG, PNG up to 10MB</p>
+      <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFile(this)">
+    </div>
+    <div id="file-chosen" style="font-size:.78rem;color:var(--t2);margin-bottom:10px;display:none"></div>
+    <button class="btn btn-p" style="width:100%;padding:12px;justify-content:center" onclick="saveDocument()">💾 Save to MediVault</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ TOAST ═══════════════════ -->
+<div class="tc" id="toasts"></div>
+
+<!-- ═══════════════════ SOS FAB ═══════════════════ -->
+<button class="sos-fab" onclick="triggerSOS()" title="One-Tap Emergency SOS">
+  <span class="sos-icon">🆘</span>
+  <span class="sos-lbl">SOS</span>
+</button>
+
+<div class="soverlay" id="soverlay" onclick="toggleSidebar()"></div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-wrap">
+      <div class="logo-icon">🏥</div>
+      <span class="logo-txt">True<span>Medi</span></span>
+    </div>
+    <nav class="snav">
+      <div class="sg">Main</div>
+      <div class="ni active" onclick="sv('dashboard',this)"><span class="ni-icon">📊</span>Dashboard</div>
+      <div class="ni" onclick="sv('search',this)"><span class="ni-icon">🔍</span>Find a Bed</div>
+      <div class="ni" onclick="sv('map',this)"><span class="ni-icon">🗺️</span>Live Map</div>
+      <div class="sg">Patient</div>
+      <div class="ni" onclick="sv('medivault',this)"><span class="ni-icon">🔐</span>MediVault</div>
+      <div class="ni" onclick="sv('requests',this)">
+        <span class="ni-icon">📋</span>Requests
+        <span class="nbadge" id="reqBadge">3</span>
+      </div>
+      <div class="sg">Hospital</div>
+      <div class="ni" onclick="sv('hospitals',this)"><span class="ni-icon">🏨</span>All Hospitals</div>
+      <div class="ni" onclick="sv('admin',this)"><span class="ni-icon">⚙️</span>Admin Panel</div>
+      <div class="sg">Insights</div>
+      <div class="ni" onclick="sv('analytics',this)"><span class="ni-icon">📈</span>Analytics</div>
+      <div class="ni" onclick="sv('alerts',this)">
+        <span class="ni-icon">🔔</span>Alerts
+        <span class="nbadge" id="alBadge">2</span>
+      </div>
+    </nav>
+    <div class="sbot">
+      <div class="live-pill"><div class="pdot"></div>System Live · Syncing</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="stoggle" onclick="toggleSidebar()">☰</button>
+      <div class="tb-title" id="tbTitle">Dashboard <span>Overview</span></div>
+      <div class="tb-search"><span class="si">🔍</span><input type="text" placeholder="Search hospitals..." oninput="qs(this.value)"></div>
+      <div class="tb-acts">
+        <div class="ib" onclick="refreshData()" title="Refresh">🔄</div>
+        <div class="ib" onclick="sv('alerts',null)" title="Alerts">🔔</div>
+        <div class="ib" onclick="sv('medivault',null)" title="MediVault" style="color:var(--purple)">🔐</div>
+        <button onclick="triggerSOS()" style="background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;padding:7px 14px;border:none;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(255,51,102,.3);">🚨 SOS</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══════════ DASHBOARD ══════════ -->
+      <div class="view active" id="view-dashboard">
+        <div class="sg4">
+          <div class="sc bl"><div class="sc-top"><div class="sc-icon ic-bl">🏥</div><span class="schange up">↑ Live</span></div><div class="sval" id="sv-h">24</div><div class="slbl">Hospitals Connected</div></div>
+          <div class="sc gr"><div class="sc-top"><div class="sc-icon ic-gr">🛏️</div><span class="schange up" id="beds-ch">Real-time</span></div><div class="sval" id="sv-b">—</div><div class="slbl">Available Beds</div></div>
+          <div class="sc or"><div class="sc-top"><div class="sc-icon ic-or">🚑</div><span class="schange dn">3 on call</span></div><div class="sval">12</div><div class="slbl">Ambulances Active</div></div>
+          <div class="sc re"><div class="sc-top"><div class="sc-icon ic-re">⚡</div><span class="schange up">Today</span></div><div class="sval" id="sv-rq">—</div><div class="slbl">Requests Today</div></div>
+        </div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel">
+            <div class="ph"><div><div class="pt">🏥 Hospital Status</div><div class="ps">Live bed availability</div></div><button class="btn btn-s btn-sm" onclick="sv('hospitals',null)">View All</button></div>
+            <div style="overflow-x:auto"><table class="dt" id="dashHospTable"></table></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="panel"><div class="ph"><div class="pt">📋 Recent Requests</div></div><div style="padding:9px 16px" id="dashReqs"></div></div>
+            <div class="panel"><div class="ph"><div class="pt">🔔 Active Alerts</div></div><div style="padding:10px" id="dashAlerts"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ FIND A BED ══════════ -->
+      <div class="view" id="view-search">
+        <div class="shero">
+          <h2>🔍 Find Available Beds</h2>
+          <p>Real-time results sorted by live traffic ETA — not just distance.</p>
+          <div class="sform">
+            <div class="sf" style="flex:1.5"><label>Your Location</label><input type="text" id="s_loc" placeholder="e.g. Chengalpattu..." value="Chengalpattu"></div>
+            <div class="sf"><label>Emergency Type</label><select id="s_etype"><option value="all">All Emergencies</option><option>Cardiac Arrest</option><option>Stroke</option><option>Road Accident</option><option>Breathing Difficulty</option><option>Maternity</option></select></div>
+            <div class="sf"><label>Bed Type</label><select id="s_btype"><option value="all">Any Bed</option><option value="icu">ICU</option><option value="general">General Ward</option><option value="ventilator">Ventilator</option><option value="maternity">Maternity</option></select></div>
+            <div class="sf" style="flex:0.5;align-self:flex-end"><button class="btn btn-p" style="width:100%;padding:10px" onclick="runSearch()">🔍 Search</button></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;flex-wrap:wrap;gap:7px">
+          <div style="font-size:.83rem;color:var(--t2)" id="srCount">All hospitals</div>
+          <select style="background:var(--surface);border:1px solid var(--b2);color:var(--text);padding:6px 10px;border-radius:7px;font-size:.78rem;outline:none;" onchange="sortResults(this.value)">
+            <option value="eta">Fastest ETA</option><option value="beds">Most Beds</option><option value="icu">Most ICU</option><option value="dist">Distance</option>
+          </select>
+        </div>
+        <div id="searchResults" style="display:flex;flex-direction:column;gap:9px"></div>
+      </div>
+
+      <!-- ══════════ LIVE MAP ══════════ -->
+      <div class="view" id="view-map">
+        <div style="margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px">
+          <div><div style="font-size:1.05rem;font-weight:700">🗺️ Live Map</div><div style="font-size:.78rem;color:var(--t2);margin-top:2px">Real-time hospitals & ambulances near you</div></div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge green">🏥 Available</span><span class="badge orange">🏥 Limited</span><span class="badge red">🏥 Full</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:600;background:var(--odim);color:var(--orange);border:1px solid rgba(255,107,43,.25)">🚑 Ambulance</span>
+            <span class="badge blue">📍 You</span>
+          </div>
+        </div>
+        <div class="mapview" id="mapContainer">
+          <!-- SVG roads -->
+          <svg class="map-roads" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path class="road-line" d="M0,50 Q25,45 50,52 Q75,58 100,50"/>
+            <path class="road-line" d="M50,0 Q48,25 50,52 Q52,70 50,100"/>
+            <path class="road-line" d="M0,30 Q30,32 50,30 Q70,28 100,35"/>
+            <path class="road-line" d="M20,0 Q22,40 20,100"/>
+            <path class="road-line" d="M80,0 Q78,40 80,100"/>
+            <path class="road-line" d="M0,70 Q50,68 100,72"/>
+          </svg>
+          <div class="map-status-bar">
+            <div class="msb-item"><div class="ldot" style="background:var(--green)"></div><span id="msb-avail">0 Available</span></div>
+            <div class="msb-item"><div class="ldot" style="background:var(--orange)"></div><span id="msb-lim">0 Limited</span></div>
+            <div class="msb-item"><div class="ldot" style="background:var(--red)"></div><span id="msb-full">0 Full</span></div>
+            <div class="msb-item"><span>🚑</span><span id="msb-ambu">0 Ambulances</span></div>
+          </div>
+          <div class="map-controls">
+            <div class="mc-btn" title="Zoom In">+</div>
+            <div class="mc-btn" title="Zoom Out">−</div>
+            <div class="mc-btn" title="Center on you" onclick="toast('Centered on your location','info','📍')">⊙</div>
+            <div class="mc-btn" title="SOS from map" onclick="triggerSOS()">🆘</div>
+          </div>
+          <div class="map-legend">
+            <div style="font-size:.66rem;font-weight:700;color:var(--t2);margin-bottom:3px">LEGEND</div>
+            <div class="dli"><div class="ddot" style="background:var(--green)"></div><span style="font-size:.68rem;color:var(--t2)">Hospital Available</span></div>
+            <div class="dli"><div class="ddot" style="background:var(--orange)"></div><span style="font-size:.68rem;color:var(--t2)">Hospital Limited</span></div>
+            <div class="dli"><div class="ddot" style="background:var(--red)"></div><span style="font-size:.68rem;color:var(--t2)">Hospital Full</span></div>
+            <div class="dli"><div style="width:8px;height:8px;background:var(--orange);border-radius:2px;flex-shrink:0"></div><span style="font-size:.68rem;color:var(--t2)">🚑 Ambulance (busy)</span></div>
+            <div class="dli"><div style="width:8px;height:8px;background:var(--green);border-radius:2px;flex-shrink:0"></div><span style="font-size:.68rem;color:var(--t2)">🚑 Ambulance (free)</span></div>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top:16px">
+          <div class="panel"><div class="ph"><div class="pt">🏆 Closest Available</div></div><div style="overflow-x:auto"><table class="dt" id="mapNearby"></table></div></div>
+          <div class="panel"><div class="ph"><div class="pt">🚑 Ambulance Fleet</div></div><div style="overflow-x:auto"><table class="dt" id="mapAmbuTable"></table></div></div>
+        </div>
+      </div>
+
+      <!-- ══════════ MEDIVAULT ══════════ -->
+      <div class="view" id="view-medivault">
+        <div class="mv-hero">
+          <h2>🔐 MediVault</h2>
+          <p>Your secure digital medical records — like DigiLocker, but for your health. Accessible in any emergency.</p>
+          <div class="mv-profile">
+            <div class="mv-avatar">👤</div>
+            <div class="mv-user-info">
+              <h3 id="mv-name">Ishaan Srivastava</h3>
+              <p id="mv-dob">DOB: 15 Mar 2006 · Blood Group: <strong style="color:var(--red)">B+</strong></p>
+              <div class="mv-id" id="mv-uid">MV-ID: TM-2511003011051</div>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-s btn-sm" onclick="showMVEdit()">✏️ Edit Profile</button>
+              <button class="btn btn-pu btn-sm" onclick="openModal('uploadModal')">+ Add Record</button>
+            </div>
+          </div>
+          <div class="share-banner">
+            <span class="si3">🔗</span>
+            <div><p style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:2px">Share with Doctor / Emergency Team</p><p>One-tap share via QR code or secure link. Expires in 24hrs.</p></div>
+            <div class="qr-placeholder">▦</div>
+            <button class="btn btn-p btn-sm" onclick="toast('Secure QR link generated & copied!','success','🔗')">Share</button>
+          </div>
+        </div>
+
+        <div class="mv-tabs">
+          <div class="mv-tab active" onclick="mvTab('docs',this)">📁 Documents</div>
+          <div class="mv-tab" onclick="mvTab('vitals',this)">💊 Vitals & Meds</div>
+          <div class="mv-tab" onclick="mvTab('history',this)">📅 Health History</div>
+          <div class="mv-tab" onclick="mvTab('emergency',this)">🆘 Emergency Card</div>
+        </div>
+
+        <!-- DOCUMENTS -->
+        <div class="mv-section active" id="mvs-docs">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div style="font-size:.9rem;font-weight:700">Medical Documents <span style="color:var(--t2);font-weight:400" id="docCount">(0 files)</span></div>
+            <button class="btn btn-pu btn-sm" onclick="openModal('uploadModal')">+ Upload Document</button>
+          </div>
+          <div class="doc-grid" id="docGrid"></div>
+        </div>
+
+        <!-- VITALS & MEDS -->
+        <div class="mv-section" id="mvs-vitals">
+          <div class="two-col" style="margin-bottom:16px">
+            <div>
+              <div style="font-size:.88rem;font-weight:700;margin-bottom:12px">📊 Current Vitals</div>
+              <div class="vital-grid" id="vitalsGrid"></div>
+            </div>
+            <div>
+              <div style="font-size:.88rem;font-weight:700;margin-bottom:12px">⚠️ Allergies</div>
+              <div id="allergyList" style="margin-bottom:16px"></div>
+              <div style="font-size:.88rem;font-weight:700;margin-bottom:12px">💊 Current Medications</div>
+              <div id="medList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="mv-section" id="mvs-history">
+          <div style="font-size:.88rem;font-weight:700;margin-bottom:14px">📅 Medical History Timeline</div>
+          <div class="health-timeline" id="healthTimeline"></div>
+        </div>
+
+        <!-- EMERGENCY CARD -->
+        <div class="mv-section" id="mvs-emergency">
+          <div class="two-col">
+            <div>
+              <div style="font-size:.88rem;font-weight:700;margin-bottom:14px">🆘 Emergency Contacts</div>
+              <div id="emgContacts"></div>
+              <button class="btn btn-s btn-sm" style="margin-top:8px" onclick="toast('Emergency contact added','success','✓')">+ Add Contact</button>
+            </div>
+            <div>
+              <div style="font-size:.88rem;font-weight:700;margin-bottom:14px">🏥 Critical Medical Info</div>
+              <div style="background:var(--rdim);border:1px solid rgba(255,51,102,.25);border-radius:10px;padding:16px;margin-bottom:12px">
+                <div style="font-size:.8rem;font-weight:700;color:var(--red);margin-bottom:8px">⚠️ CRITICAL — Read in Emergency</div>
+                <div style="font-size:.82rem;line-height:1.7" id="criticalInfo"></div>
+              </div>
+              <div style="background:var(--adim);border:1px solid rgba(0,200,240,.2);border-radius:10px;padding:14px">
+                <div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:8px">🔐 MediVault QR Code</div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:80px;height:80px;background:var(--surface3);border:1px solid var(--b2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2.5rem">▦</div>
+                  <div>
+                    <div style="font-size:.8rem;margin-bottom:4px">Scan to access full medical history</div>
+                    <div style="font-size:.72rem;color:var(--t2)">Works offline · Secure 256-bit encryption</div>
+                    <button class="btn btn-p btn-xs" style="margin-top:8px" onclick="toast('QR code downloaded','success','📥')">Download QR</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ ALL HOSPITALS ══════════ -->
+      <div class="view" id="view-hospitals">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:9px">
+          <div><div style="font-size:1.05rem;font-weight:700">🏨 All Hospitals</div><div style="font-size:.78rem;color:var(--t2);margin-top:2px">Complete network with live data</div></div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <input type="text" placeholder="Search..." oninput="filterH(this.value)" style="background:var(--surface);border:1px solid var(--b2);color:var(--text);padding:7px 11px;border-radius:8px;font-size:.83rem;outline:none;min-width:160px;">
+            <select onchange="filterHType(this.value)" style="background:var(--surface);border:1px solid var(--b2);color:var(--text);padding:7px 11px;border-radius:8px;font-size:.83rem;outline:none;">
+              <option value="all">All Types</option><option value="government">Government</option><option value="private">Private</option><option value="phc">PHC</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel"><div style="overflow-x:auto"><table class="dt" id="allHospTable"></table></div></div>
+      </div>
+
+      <!-- ══════════ ADMIN ══════════ -->
+      <div class="view" id="view-admin">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:9px">
+          <div><div style="font-size:1.05rem;font-weight:700">⚙️ Hospital Admin Panel</div><div style="font-size:.78rem;color:var(--t2);margin-top:2px">Update bed counts in real time</div></div>
+          <div style="display:flex;gap:7px"><button class="btn btn-s btn-sm" onclick="refreshAdmin()">🔄 Refresh</button><button class="btn btn-p btn-sm" onclick="saveAll()">💾 Save All</button></div>
+        </div>
+        <div class="admin-grid" id="adminGrid"></div>
+        <div class="panel"><div class="ph"><div class="pt">📤 Data Export</div></div><div class="pb" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center"><button class="btn btn-s btn-sm" onclick="exportJSON()">📥 Export JSON</button><button class="btn btn-s btn-sm" onclick="exportCSV()">📊 Export CSV</button><span style="color:var(--t3);font-size:.76rem">Auto-syncs every 30s</span></div></div>
+      </div>
+
+      <!-- ══════════ REQUESTS ══════════ -->
+      <div class="view" id="view-requests">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:9px">
+          <div><div style="font-size:1.05rem;font-weight:700">📋 Patient Requests</div><div style="font-size:.78rem;color:var(--t2);margin-top:2px">Ambulance & bed requests</div></div>
+          <select style="background:var(--surface);border:1px solid var(--b2);color:var(--text);padding:7px 11px;border-radius:8px;font-size:.83rem;outline:none;" onchange="filterReqs(this.value)">
+            <option value="all">All</option><option value="pending">Pending</option><option value="active">Active</option><option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="panel"><div style="overflow-x:auto"><table class="dt" id="reqTable"></table></div></div>
+      </div>
+
+      <!-- ══════════ ANALYTICS ══════════ -->
+      <div class="view" id="view-analytics">
+        <div style="font-size:1.05rem;font-weight:700;margin-bottom:16px">📈 Analytics</div>
+        <div class="sg4" style="margin-bottom:18px">
+          <div class="sc bl"><div class="sc-top"><div class="sc-icon ic-bl">⏱️</div></div><div class="sval">6.2m</div><div class="slbl">Avg Response</div></div>
+          <div class="sc gr"><div class="sc-top"><div class="sc-icon ic-gr">✅</div></div><div class="sval">94.7%</div><div class="slbl">Bed Match Rate</div></div>
+          <div class="sc or"><div class="sc-top"><div class="sc-icon ic-or">🌍</div></div><div class="sval">18</div><div class="slbl">Languages</div></div>
+          <div class="sc re"><div class="sc-top"><div class="sc-icon ic-re">🏘️</div></div><div class="sval">34%</div><div class="slbl">Rural Requests</div></div>
+        </div>
+        <div class="two-col" style="margin-bottom:16px">
+          <div class="panel"><div class="ph"><div class="pt">📊 Daily Requests — 7 Days</div></div><div class="pb"><div class="chart-wrap" id="reqChart"></div></div></div>
+          <div class="panel"><div class="ph"><div class="pt">🛏️ Bed Utilisation</div></div><div class="pb"><div class="donut-w" id="donutChart"></div></div></div>
+        </div>
+        <div class="panel"><div class="ph"><div class="pt">🏥 Top Hospitals</div></div><div style="overflow-x:auto"><table class="dt" id="anaTable"></table></div></div>
+      </div>
+
+      <!-- ══════════ ALERTS ══════════ -->
+      <div class="view" id="view-alerts">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:9px">
+          <div><div style="font-size:1.05rem;font-weight:700">🔔 System Alerts</div><div style="font-size:.78rem;color:var(--t2)">Network notifications</div></div>
+          <button class="btn btn-s btn-sm" onclick="clearAlerts()">✓ Mark All Read</button>
+        </div>
+        <div id="alertsList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// BACKEND DATA
+// ═══════════════════════════════════════════════
+const DB = {
+  hospitals:[
+    {id:1,name:"SRM Medical Center",type:"private",area:"Kattankulathur",distance:3.2,eta:7,mapX:52,mapY:43,icu_total:20,icu_avail:8,gen_total:120,gen_avail:34,vent_total:10,vent_avail:4,mat_total:20,mat_avail:9,contact:"044-2745-1000",rating:4.7,req_today:18,avg_resp:5.2,status:"available"},
+    {id:2,name:"Govt. District Hospital",type:"government",area:"Chengalpattu",distance:1.8,eta:5,mapX:46,mapY:56,icu_total:30,icu_avail:3,gen_total:200,gen_avail:12,vent_total:8,vent_avail:1,mat_total:30,mat_avail:7,contact:"044-2742-2345",rating:4.2,req_today:42,avg_resp:7.8,status:"limited"},
+    {id:3,name:"Apollo Speciality",type:"private",area:"Vandalur",distance:12.1,eta:22,mapX:28,mapY:64,icu_total:40,icu_avail:0,gen_total:180,gen_avail:0,vent_total:15,vent_avail:0,mat_total:25,mat_avail:0,contact:"044-2866-4500",rating:4.9,req_today:7,avg_resp:4.1,status:"full"},
+    {id:4,name:"Saveetha Medical",type:"private",area:"Thandalam",distance:18.5,eta:31,mapX:20,mapY:39,icu_total:25,icu_avail:11,gen_total:150,gen_avail:57,vent_total:12,vent_avail:5,mat_total:18,mat_avail:8,contact:"044-2680-1234",rating:4.4,req_today:23,avg_resp:8.5,status:"available"},
+    {id:5,name:"Kancheepuram PHC",type:"phc",area:"Kancheepuram",distance:28.4,eta:42,mapX:74,mapY:31,icu_total:2,icu_avail:1,gen_total:20,gen_avail:6,vent_total:0,vent_avail:0,mat_total:8,mat_avail:3,contact:"044-2722-1100",rating:3.9,req_today:9,avg_resp:12.0,status:"available"},
+    {id:6,name:"Gleneagles BGS",type:"private",area:"Navalur",distance:22.0,eta:35,mapX:36,mapY:72,icu_total:35,icu_avail:14,gen_total:160,gen_avail:42,vent_total:14,vent_avail:6,mat_total:22,mat_avail:11,contact:"044-6656-9000",rating:4.6,req_today:15,avg_resp:6.3,status:"available"},
+    {id:7,name:"Madras Medical College",type:"government",area:"Park Town",distance:45.0,eta:58,mapX:66,mapY:67,icu_total:80,icu_avail:5,gen_total:500,gen_avail:22,vent_total:30,vent_avail:2,mat_total:60,mat_avail:8,contact:"044-2530-5100",rating:4.5,req_today:61,avg_resp:9.2,status:"limited"},
+    {id:8,name:"Tambaram PHC",type:"phc",area:"Tambaram",distance:8.9,eta:14,mapX:62,mapY:27,icu_total:2,icu_avail:0,gen_total:15,gen_avail:4,vent_total:0,vent_avail:0,mat_total:6,mat_avail:2,contact:"044-2226-0077",rating:3.7,req_today:6,avg_resp:14.0,status:"limited"}
+  ],
+  ambulances:[
+    {id:"AMB-01",status:"free",driver:"Suresh K.",mapX:48,mapY:48,eta:3},
+    {id:"AMB-02",status:"free",driver:"Rajan M.",mapX:55,mapY:40,eta:5},
+    {id:"AMB-03",status:"dispatched",driver:"Pradeep S.",mapX:44,mapY:60,eta:8,to:"Govt. District Hospital"},
+    {id:"AMB-07",status:"dispatched",driver:"Vijay R.",mapX:50,mapY:50,eta:7,to:"SRM Medical Center"},
+    {id:"AMB-09",status:"free",driver:"Arun T.",mapX:70,mapY:35,eta:12},
+    {id:"AMB-11",status:"returning",driver:"Kumar V.",mapX:30,mapY:55,eta:15},
+  ],
+  requests:[
+    {id:"R-1042",patient:"Ravi Kumar",age:58,phone:"98765-43210",hospital:"SRM Medical Center",emergency:"Cardiac Arrest",severity:"critical",time:"12 min ago",status:"active",ambu:"AMB-07"},
+    {id:"R-1041",patient:"Priya Sharma",age:32,phone:"87654-32109",hospital:"Govt. District Hospital",emergency:"Maternity",severity:"serious",time:"34 min ago",status:"active",ambu:"AMB-03"},
+    {id:"R-1040",patient:"Mohammed Ali",age:45,phone:"76543-21098",hospital:"Saveetha Medical",emergency:"Road Accident",severity:"critical",time:"1 hr ago",status:"completed",ambu:"AMB-11"},
+    {id:"R-1039",patient:"Lakshmi Devi",age:67,phone:"65432-10987",hospital:"Gleneagles BGS",emergency:"Stroke",severity:"critical",time:"2 hrs ago",status:"completed",ambu:"AMB-02"},
+    {id:"R-1037",patient:"Meena Krishnan",age:28,phone:"43210-98765",hospital:"SRM Medical Center",emergency:"General",severity:"stable",time:"5 hrs ago",status:"pending",ambu:"—"}
+  ],
+  alerts:[
+    {id:1,type:"critical",icon:"🔴",title:"Apollo Speciality — ALL BEDS FULL",msg:"0 ICU, 0 General beds. Redirecting all requests.",time:"2 min ago"},
+    {id:2,type:"warning",icon:"🟠",title:"Govt. District — ICU Critical",msg:"Only 3 ICU beds remaining. Capacity at 90%.",time:"8 min ago"},
+    {id:3,type:"info",icon:"🔵",title:"AMB-07 Dispatched",msg:"En route to SRM Medical Center for Cardiac case.",time:"12 min ago"},
+    {id:4,type:"success",icon:"🟢",title:"Saveetha Medical — Beds Restored",msg:"11 ICU beds available after discharge batch.",time:"22 min ago"},
+    {id:5,type:"info",icon:"🔵",title:"Tambaram PHC — ICU Full",msg:"ICU capacity exhausted. 4 General beds available.",time:"15 min ago"},
+    {id:6,type:"success",icon:"🟢",title:"24 hospitals synced",msg:"All hospitals reporting live data.",time:"1 min ago"}
+  ],
+  medivault:{
+    name:"Ishaan Srivastava",dob:"15 Mar 2006",blood:"B+",uid:"TM-2511003011051",
+    documents:[
+      {type:"Lab Report",name:"Complete Blood Count (CBC)",date:"2026-01-15",doctor:"Dr. Ramesh, SRM",notes:"Haemoglobin: 14.2 g/dL — Normal",icon:"🧪",verified:true},
+      {type:"Prescription",name:"Cardiac Medication — Post-check",date:"2025-11-20",doctor:"Dr. Priya Nair",notes:"Amlodipine 5mg, Aspirin 75mg",icon:"💊",verified:true},
+      {type:"Scan / X-Ray",name:"Chest X-Ray",date:"2025-10-05",doctor:"Govt. District Hospital",notes:"Clear — No abnormalities detected",icon:"🫁",verified:true},
+      {type:"Vaccination",name:"COVID-19 Booster",date:"2025-06-01",doctor:"PHC Tambaram",notes:"Covishield Booster — Lot: CVS-2025",icon:"💉",verified:true},
+      {type:"Discharge Summary",name:"Appendectomy Discharge",date:"2024-03-18",doctor:"Apollo Speciality",notes:"Laparoscopic appendectomy. Discharged after 3 days.",icon:"🏥",verified:true},
+      {type:"ECG Report",name:"12-Lead ECG",date:"2025-12-01",doctor:"Dr. Suresh Cardiac Clinic",notes:"Normal sinus rhythm. No abnormalities.",icon:"📈",verified:false}
+    ],
+    vitals:{bp:"118/76",hr:"72",spo2:"98%",weight:"67 kg",height:"5'9\"",bmi:"22.1"},
+    allergies:["Penicillin","Shellfish","Latex"],
+    medications:["Vitamin D3 60K IU (Weekly)","Omega-3 Fish Oil (Daily)","Cetirizine 10mg (As needed)"],
+    history:[
+      {title:"Appendectomy",sub:"Laparoscopic surgery — Apollo Speciality",date:"March 2024",icon:"🔪",color:"var(--orange)"},
+      {title:"COVID-19",sub:"Mild symptoms — Home isolation",date:"Jan 2022",icon:"🦠",color:"var(--red)"},
+      {title:"Fractured Wrist",sub:"Right ulna hairline fracture — Plaster cast",date:"Sep 2021",icon:"🦴",color:"var(--accent)"},
+      {title:"Typhoid Fever",sub:"Hospitalized 5 days — Govt. District Hospital",date:"Jul 2019",icon:"🌡️",color:"var(--orange)"},
+      {title:"Childhood Asthma",sub:"Resolved by age 10 — No current treatment",date:"2010–2016",icon:"💨",color:"var(--purple)"}
+    ],
+    contacts:[
+      {name:"Shashwat Kumar",rel:"Friend / Classmate",phone:"98765-00001",icon:"👨‍🦱"},
+      {name:"Aryan Agarwal",rel:"Friend",phone:"87654-00002",icon:"👦"},
+      {name:"Mother",rel:"Parent",phone:"76543-00003",icon:"👩"}
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+const bcolor = (a,t) => { if(!t) return 'red'; const p=a/t; return p>.3?'green':p>.08?'orange':'red'; };
+const bfClass = c => c==='green'?'bf-g':c==='orange'?'bf-o':'bf-r';
+const bchClass = c => c==='green'?'bch-g':c==='orange'?'bch-o':'bch-r';
+const stBadge = h => {
+  const c=h.status==='available'?'green':h.status==='limited'?'orange':'red';
+  const l=h.status==='available'?'Available':h.status==='limited'?'Limited':'Full';
+  return `<span class="badge ${c}">● ${l}</span>`;
+};
+const typeEmoji = t => t==='government'?'🏛️':t==='private'?'🏢':'🌿';
+const typeLbl = t => t==='government'?'Government':t==='private'?'Private':'PHC';
+const haClass = t => t==='government'?'ha-g':t==='private'?'ha-p':'ha-ph';
+const totalBeds = () => DB.hospitals.reduce((a,h)=>a+h.icu_avail+h.gen_avail+h.mat_avail,0);
+
+// ═══════════════════════════════════════════════
+// VIEWS
+// ═══════════════════════════════════════════════
+function sv(name, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const T={dashboard:'Dashboard Overview',search:'Find a Bed',map:'Live Map',medivault:'MediVault Records',requests:'Patient Requests',hospitals:'All Hospitals',admin:'Admin Panel',analytics:'Analytics',alerts:'System Alerts'};
+  const t=T[name]||name, p=t.split(' '), last=p.pop();
+  document.getElementById('tbTitle').innerHTML=`${p.join(' ')} <span>${last}</span>`;
+  if(name==='search') renderSearch(DB.hospitals);
+  if(name==='map') renderMap();
+  if(name==='hospitals') renderAllH(DB.hospitals);
+  if(name==='admin') renderAdmin();
+  if(name==='requests') renderReqs(DB.requests);
+  if(name==='analytics') renderAnalytics();
+  if(name==='alerts') renderAlertsList();
+  if(name==='medivault') renderMediVault();
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('soverlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function toast(msg,type='info',icon='ℹ️'){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${icon}</span><span class="toast-msg">${msg}</span><button class="toast-x" onclick="this.parentElement.remove()">✕</button>`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.animation='tOut .3s ease forwards';setTimeout(()=>t.remove(),300);},3800);
+}
+
+// ═══════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ═══════════════════════════════════════════════
+// SOS
+// ═══════════════════════════════════════════════
+let sosTimer=null, sosCount=5;
+function triggerSOS(){
+  document.getElementById('sosOverlay').classList.add('open');
+  document.getElementById('sos-state-countdown').style.display='block';
+  document.getElementById('sos-state-dispatched').style.display='none';
+  sosCount=5;
+  document.getElementById('sosCount').textContent=sosCount;
+  // Fill info
+  const nearest = DB.hospitals.sort((a,b)=>a.eta-b.eta)[0];
+  document.getElementById('sos-location').textContent='Chengalpattu, Tamil Nadu (GPS)';
+  document.getElementById('sos-hospital').textContent=`${nearest.name} — ${nearest.eta} min ETA`;
+  document.getElementById('sos-profile').textContent=`${DB.medivault.name} · Blood: ${DB.medivault.blood} · Allergies: ${DB.medivault.allergies.join(', ')}`;
+  sosTimer=setInterval(()=>{
+    sosCount--;
+    document.getElementById('sosCount').textContent=sosCount;
+    if(sosCount<=0){clearInterval(sosTimer);confirmSOS();}
+  },1000);
+}
+function confirmSOS(){
+  clearInterval(sosTimer);
+  const nearest=[...DB.hospitals].sort((a,b)=>a.eta-b.eta)[0];
+  document.getElementById('sos-state-countdown').style.display='none';
+  document.getElementById('sos-state-dispatched').style.display='block';
+  document.getElementById('sos-eta').textContent=nearest.eta+' min';
+  document.getElementById('dispatch-hosp').textContent=nearest.name;
+  // Add to requests
+  DB.requests.unshift({id:`R-${1043+DB.requests.length}`,patient:DB.medivault.name,age:20,phone:'SOS-AUTO',hospital:nearest.name,emergency:'SOS Emergency',severity:'critical',time:'Just now',status:'active',ambu:'AMB-01'});
+  document.getElementById('reqBadge').textContent=DB.requests.filter(r=>r.status!=='completed').length;
+  toast(`🚑 SOS! Ambulance dispatched to ${nearest.name} in ${nearest.eta} min`,'error','🆘');
+  renderDashboard();
+}
+function cancelSOS(){clearInterval(sosTimer);document.getElementById('sosOverlay').classList.remove('open');toast('SOS cancelled','info','✓');}
+function closeSOS(){document.getElementById('sosOverlay').classList.remove('open');sv('map',null);}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard(){
+  document.getElementById('sv-h').textContent=DB.hospitals.length;
+  document.getElementById('sv-b').textContent=totalBeds();
+  document.getElementById('sv-rq').textContent=DB.requests.length;
+  const sorted=[...DB.hospitals].sort((a,b)=>(b.icu_avail+b.gen_avail)-(a.icu_avail+a.gen_avail)).slice(0,5);
+  document.getElementById('dashHospTable').innerHTML=`<thead><tr><th>Hospital</th><th>Status</th><th>ICU</th><th>General</th><th>ETA</th></tr></thead><tbody>${sorted.map(h=>`<tr>
+    <td><div class="hn"><div class="ha ${haClass(h.type)}">${typeEmoji(h.type)}</div><div><div class="hn-name">${h.name}</div><div class="hn-sub">${h.area}</div></div></div></td>
+    <td>${stBadge(h)}</td>
+    <td><div class="bv"><div class="bt"><div class="bf ${bfClass(bcolor(h.icu_avail,h.icu_total))}" style="width:${h.icu_total?Math.round(h.icu_avail/h.icu_total*100):0}%"></div></div><span class="bc-v" style="color:var(--${bcolor(h.icu_avail,h.icu_total)})">${h.icu_avail}</span></div></td>
+    <td><div class="bv"><div class="bt"><div class="bf ${bfClass(bcolor(h.gen_avail,h.gen_total))}" style="width:${h.gen_total?Math.round(h.gen_avail/h.gen_total*100):0}%"></div></div><span class="bc-v" style="color:var(--${bcolor(h.gen_avail,h.gen_total)})">${h.gen_avail}</span></div></td>
+    <td><span class="eta-p">⏱ ${h.eta}m</span></td>
+  </tr>`).join('')}</tbody>`;
+  document.getElementById('dashReqs').innerHTML=DB.requests.slice(0,4).map(r=>{
+    const c=r.severity==='critical'?'red':r.severity==='serious'?'orange':'green';
+    return `<div class="ri"><div class="ra" style="background:rgba(${c==='red'?'255,51,102':c==='orange'?'255,107,43':'0,232,122'},.15)">${r.severity==='critical'?'🔴':r.severity==='serious'?'🟠':'🟢'}</div>
+    <div style="flex:1"><div class="ri-name">${r.patient} <span style="font-size:.7rem;color:var(--t3)">·${r.age}y</span></div><div class="ri-det">${r.emergency} → ${r.hospital}</div></div>
+    <div class="ri-r"><span class="badge ${r.status==='active'?'green':r.status==='pending'?'orange':'blue'}">${r.status}</span><span class="ri-time">${r.time}</span></div></div>`;
+  }).join('');
+  document.getElementById('dashAlerts').innerHTML=DB.alerts.slice(0,3).map(a=>`<div class="ai ${a.type}" style="margin-bottom:7px"><span class="ai-icon">${a.icon}</span><div style="flex:1"><div class="ai-title">${a.title}</div><div class="ai-msg">${a.msg}</div></div><span class="ai-time">${a.time}</span></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════
+let curResults=[...DB.hospitals];
+function runSearch(){
+  const bt=document.getElementById('s_btype').value;
+  const loc=document.getElementById('s_loc').value||'your area';
+  let r=[...DB.hospitals];
+  if(bt==='icu') r=r.filter(h=>h.icu_avail>0);
+  else if(bt==='ventilator') r=r.filter(h=>h.vent_avail>0);
+  else if(bt==='maternity') r=r.filter(h=>h.mat_avail>0);
+  else if(bt==='general') r=r.filter(h=>h.gen_avail>0);
+  r.sort((a,b)=>a.eta-b.eta);
+  curResults=r;
+  renderSearch(r);
+  document.getElementById('srCount').textContent=`${r.length} hospitals near ${loc}`;
+  toast(`${r.length} hospitals found`,'info','🔍');
+}
+function sortResults(by){
+  let r=[...curResults];
+  if(by==='eta') r.sort((a,b)=>a.eta-b.eta);
+  else if(by==='beds') r.sort((a,b)=>(b.icu_avail+b.gen_avail)-(a.icu_avail+a.gen_avail));
+  else if(by==='icu') r.sort((a,b)=>b.icu_avail-a.icu_avail);
+  else if(by==='dist') r.sort((a,b)=>a.distance-b.distance);
+  renderSearch(r);
+}
+function renderSearch(list){
+  const el=document.getElementById('searchResults');
+  if(!list.length){el.innerHTML=`<div class="empty"><div class="ei">🏥</div><h3>No hospitals found</h3><p>Adjust your filters.</p></div>`;return;}
+  el.innerHTML=list.map((h,i)=>{
+    const ic=bcolor(h.icu_avail,h.icu_total), gc=bcolor(h.gen_avail,h.gen_total), vc=bcolor(h.vent_avail,h.vent_total), mc=bcolor(h.mat_avail,h.mat_total);
+    return `<div class="hcard ${i===0&&h.icu_avail>0?'top':''}" onclick="toast('${h.name}: ${h.icu_avail} ICU · ${h.gen_avail} Gen · ${h.eta}min ETA','info','🏥')">
+      ${i===0&&h.icu_avail>0?'<div class="top-badge">⚡ Best Match</div>':''}
+      <div class="hc-l">
+        <div class="hc-name">${typeEmoji(h.type)} ${h.name}</div>
+        <div class="hc-meta"><span>📍 ${h.area}</span><span>📏 ${h.distance}km</span><span>⭐ ${h.rating}</span>${stBadge(h)}</div>
+        <div class="hc-beds">
+          <div class="bchip ${bchClass(ic)}"><span class="bchip-n">${h.icu_avail}</span><span class="bchip-l">ICU</span></div>
+          <div class="bchip ${bchClass(gc)}"><span class="bchip-n">${h.gen_avail}</span><span class="bchip-l">General</span></div>
+          <div class="bchip ${bchClass(vc)}"><span class="bchip-n">${h.vent_avail}</span><span class="bchip-l">Ventilator</span></div>
+          <div class="bchip ${bchClass(mc)}"><span class="bchip-n">${h.mat_avail}</span><span class="bchip-l">Maternity</span></div>
+        </div>
+      </div>
+      <div class="hc-r">
+        <div><div class="eta-big">${h.eta}<span>min ETA</span></div><div style="font-size:.7rem;color:var(--t3);text-align:right">live traffic</div></div>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-s btn-sm" onclick="event.stopPropagation();toast('Calling ${h.contact}…','info','📞')">📞</button>
+          <button class="btn btn-d btn-sm" onclick="event.stopPropagation();openAmbu(${h.id})">🚑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// LIVE MAP
+// ═══════════════════════════════════════════════
+function renderMap(){
+  const c=document.getElementById('mapContainer');
+  c.querySelectorAll('.map-pin,.ambu-pin,.user-pin').forEach(e=>e.remove());
+  // User
+  const u=document.createElement('div');u.className='user-pin';u.style.left='50%';u.style.top='52%';u.title='You';c.appendChild(u);
+  // Hospitals
+  DB.hospitals.forEach(h=>{
+    const col=h.status==='available'?'mpi-g':h.status==='limited'?'mpi-o':'mpi-r';
+    const pin=document.createElement('div');pin.className='map-pin';
+    pin.style.left=h.mapX+'%';pin.style.top=h.mapY+'%';
+    pin.innerHTML=`<div class="mpi ${col}">🏥</div><div class="map-pin-lbl">${h.name.split(' ').slice(0,2).join(' ')}</div>`;
+    pin.onclick=()=>toast(`${h.name}: ${h.icu_avail} ICU · ${h.gen_avail} Gen · ${h.eta}min ETA`,'info','🏥');
+    c.appendChild(pin);
+  });
+  // Ambulances
+  DB.ambulances.forEach(a=>{
+    const pin=document.createElement('div');pin.className='ambu-pin';
+    pin.style.left=a.mapX+'%';pin.style.top=a.mapY+'%';
+    pin.innerHTML=`<div class="ambu-icon ${a.status==='free'?'free':a.status==='dispatched'?'dispatched':''}">🚑</div>`;
+    pin.title=`${a.id} — ${a.status.toUpperCase()} · Driver: ${a.driver}`;
+    pin.onclick=()=>toast(`${a.id}: ${a.status}${a.to?' → '+a.to:''} · Driver: ${a.driver}`,'info','🚑');
+    c.appendChild(pin);
+  });
+  // Stats bar
+  document.getElementById('msb-avail').textContent=DB.hospitals.filter(h=>h.status==='available').length+' Available';
+  document.getElementById('msb-lim').textContent=DB.hospitals.filter(h=>h.status==='limited').length+' Limited';
+  document.getElementById('msb-full').textContent=DB.hospitals.filter(h=>h.status==='full').length+' Full';
+  document.getElementById('msb-ambu').textContent=DB.ambulances.length+' Ambulances';
+  // Nearby table
+  const nearby=[...DB.hospitals].sort((a,b)=>a.eta-b.eta).slice(0,4);
+  document.getElementById('mapNearby').innerHTML=`<thead><tr><th>Hospital</th><th>ETA</th><th>ICU</th><th></th></tr></thead><tbody>${nearby.map(h=>`<tr><td><div class="hn"><div class="ha ${haClass(h.type)}">${typeEmoji(h.type)}</div><div><div class="hn-name">${h.name}</div><div class="hn-sub">${h.area}</div></div></div></td><td><span class="eta-p">⏱ ${h.eta}m</span></td><td style="color:var(--${bcolor(h.icu_avail,h.icu_total)});font-weight:700">${h.icu_avail}</td><td><button class="btn btn-d btn-xs" onclick="openAmbu(${h.id})">🚑</button></td></tr>`).join('')}</tbody>`;
+  // Ambulance table
+  document.getElementById('mapAmbuTable').innerHTML=`<thead><tr><th>Unit</th><th>Status</th><th>Driver</th><th>ETA</th></tr></thead><tbody>${DB.ambulances.map(a=>`<tr><td><span style="font-family:'Space Mono';font-size:.76rem;color:var(--orange)">${a.id}</span></td><td><span class="badge ${a.status==='free'?'green':a.status==='dispatched'?'red':'orange'}">${a.status}</span></td><td style="font-size:.8rem">${a.driver}</td><td>${a.status==='free'?`<span class="badge green">Ready</span>`:`<span class="eta-p">⏱ ${a.eta}m</span>`}</td></tr>`).join('')}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════
+// MEDIVAULT
+// ═══════════════════════════════════════════════
+let mvDocs=[...DB.medivault.documents];
+
+function renderMediVault(){
+  // Profile
+  document.getElementById('mv-name').textContent=DB.medivault.name;
+  document.getElementById('mv-dob').innerHTML=`DOB: ${DB.medivault.dob} · Blood Group: <strong style="color:var(--red)">${DB.medivault.blood}</strong>`;
+  document.getElementById('mv-uid').textContent='MV-ID: '+DB.medivault.uid;
+  renderDocs();renderVitals();renderHistory();renderEmergencyCard();
+}
+
+function mvTab(tab, el){
+  document.querySelectorAll('.mv-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.mv-section').forEach(s=>s.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('mvs-'+tab).classList.add('active');
+}
+
+function renderDocs(){
+  document.getElementById('docCount').textContent=`(${mvDocs.length} files)`;
+  document.getElementById('docGrid').innerHTML=mvDocs.map((d,i)=>`
+  <div class="doc-card" onclick="toast('${d.name} — ${d.date} · ${d.notes}','info','${d.icon}')">
+    ${d.verified?'<div class="doc-badge">✓ Verified</div>':''}
+    <div class="dicon">${d.icon}</div>
+    <div class="dname">${d.name}</div>
+    <div class="dmeta">${d.type} · ${d.doctor}</div>
+    <div class="ddate">📅 ${d.date}</div>
+    <div style="margin-top:8px;display:flex;gap:5px">
+      <button class="btn btn-s btn-xs" onclick="event.stopPropagation();toast('Viewing ${d.name}','info','👁️')">View</button>
+      <button class="btn btn-xs" style="background:var(--adim);color:var(--accent);border:1px solid rgba(0,200,240,.2)" onclick="event.stopPropagation();toast('${d.name} shared via secure link','success','🔗')">Share</button>
+      <button class="btn btn-xs" style="background:var(--rdim);color:var(--red);border:1px solid rgba(255,51,102,.2)" onclick="event.stopPropagation();deleteDoc(${i})">🗑</button>
+    </div>
+  </div>`).join('');
+}
+
+function deleteDoc(i){mvDocs.splice(i,1);renderDocs();toast('Document deleted','info','🗑️');}
+
+function saveDocument(){
+  const type=document.getElementById('ud_type').value;
+  const name=document.getElementById('ud_name').value.trim();
+  const date=document.getElementById('ud_date').value;
+  const doctor=document.getElementById('ud_doc').value.trim();
+  const notes=document.getElementById('ud_notes').value.trim();
+  if(!type||!name||!date){toast('Please fill required fields','error','⚠️');return;}
+  const icons={'Lab Report':'🧪','Prescription':'💊','Scan / X-Ray':'🫁','Discharge Summary':'🏥','Vaccination':'💉','Insurance Card':'💳','ECG Report':'📈','Allergy Report':'⚠️'};
+  mvDocs.unshift({type,name,date,doctor:doctor||'—',notes:notes||'No notes',icon:icons[type]||'📄',verified:false});
+  renderDocs();
+  closeModal('uploadModal');
+  toast('Document saved to MediVault!','success','🔐');
+  ['ud_type','ud_name','ud_date','ud_doc','ud_notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('file-chosen').style.display='none';
+}
+
+function handleFile(input){
+  if(input.files.length){
+    const fc=document.getElementById('file-chosen');
+    fc.textContent='📎 '+input.files[0].name;fc.style.display='block';
+  }
+}
+
+function renderVitals(){
+  const v=DB.medivault.vitals;
+  const vitals=[
+    {lbl:'Blood Pressure',val:v.bp,unit:'mmHg',status:'ok',stext:'Normal'},
+    {lbl:'Heart Rate',val:v.hr,unit:'bpm',status:'ok',stext:'Normal'},
+    {lbl:'SpO₂',val:v.spo2,unit:'',status:'ok',stext:'Normal'},
+    {lbl:'Weight',val:v.weight,unit:'',status:'ok',stext:'Healthy'},
+    {lbl:'Height',val:v.height,unit:'',status:'ok',stext:''},
+    {lbl:'BMI',val:v.bmi,unit:'',status:'ok',stext:'Normal'}
+  ];
+  document.getElementById('vitalsGrid').innerHTML=vitals.map(vt=>`
+  <div class="vital-card">
+    <div class="vital-val" style="color:var(--${vt.status==='ok'?'accent':'orange'})">${vt.val}</div>
+    <div class="vital-lbl">${vt.lbl}</div>
+    ${vt.stext?`<div class="vital-status ${vt.status}">● ${vt.stext}</div>`:''}
+  </div>`).join('');
+  document.getElementById('allergyList').innerHTML=DB.medivault.allergies.map(a=>`<span class="allergy-chip">⚠️ ${a}</span>`).join('');
+  document.getElementById('medList').innerHTML=DB.medivault.medications.map(m=>`<span class="med-chip">💊 ${m}</span>`).join('');
+}
+
+function renderHistory(){
+  document.getElementById('healthTimeline').innerHTML=DB.medivault.history.map(h=>`
+  <div class="ht-item">
+    <div class="ht-dot" style="background:rgba(${h.color.includes('accent')?'0,200,240':h.color.includes('orange')?'255,107,43':h.color.includes('red')?'255,51,102':'155,92,255'},.15);border-color:${h.color}">${h.icon}</div>
+    <div class="ht-content">
+      <div class="ht-title">${h.title}</div>
+      <div class="ht-sub">${h.sub}</div>
+      <div class="ht-date">📅 ${h.date}</div>
+    </div>
+  </div>`).join('');
+}
+
+function renderEmergencyCard(){
+  document.getElementById('emgContacts').innerHTML=DB.medivault.contacts.map(c=>`
+  <div class="emg-contact">
+    <div class="ec-avatar">${c.icon}</div>
+    <div class="ec-info"><div class="ec-name">${c.name}</div><div class="ec-rel">${c.rel}</div></div>
+    <div class="ec-phone">${c.phone}</div>
+    <button class="btn btn-s btn-xs" onclick="toast('Calling ${c.name}…','info','📞')">📞</button>
+  </div>`).join('');
+  document.getElementById('criticalInfo').innerHTML=`
+    Blood Group: <strong style="color:var(--red)">${DB.medivault.blood}</strong><br>
+    Allergies: <strong style="color:var(--orange)">${DB.medivault.allergies.join(', ')}</strong><br>
+    Medications: ${DB.medivault.medications.slice(0,2).join(', ')}<br>
+    Past surgeries: Appendectomy (2024)`;
+}
+
+function showMVEdit(){toast('Profile editing coming soon!','info','✏️');}
+
+// ═══════════════════════════════════════════════
+// ALL HOSPITALS
+// ═══════════════════════════════════════════════
+function renderAllH(list){
+  document.getElementById('allHospTable').innerHTML=`<thead><tr><th>Hospital</th><th>Type</th><th>ICU</th><th>General</th><th>Vent</th><th>Mat</th><th>ETA</th><th>Status</th><th></th></tr></thead><tbody>${list.map(h=>`<tr>
+    <td><div class="hn"><div class="ha ${haClass(h.type)}">${typeEmoji(h.type)}</div><div><div class="hn-name">${h.name}</div><div class="hn-sub">${h.area} · ⭐${h.rating} · ${h.contact}</div></div></div></td>
+    <td><span class="badge ${h.type==='government'?'blue':h.type==='private'?'purple':'green'}">${typeLbl(h.type)}</span></td>
+    <td><div class="bv"><div class="bt"><div class="bf ${bfClass(bcolor(h.icu_avail,h.icu_total))}" style="width:${h.icu_total?Math.round(h.icu_avail/h.icu_total*100):0}%"></div></div><span class="bc-v">${h.icu_avail}/${h.icu_total}</span></div></td>
+    <td><div class="bv"><div class="bt"><div class="bf ${bfClass(bcolor(h.gen_avail,h.gen_total))}" style="width:${h.gen_total?Math.round(h.gen_avail/h.gen_total*100):0}%"></div></div><span class="bc-v">${h.gen_avail}/${h.gen_total}</span></div></td>
+    <td style="color:var(--${bcolor(h.vent_avail,h.vent_total)});font-weight:700">${h.vent_avail}/${h.vent_total}</td>
+    <td style="color:var(--${bcolor(h.mat_avail,h.mat_total)});font-weight:700">${h.mat_avail}/${h.mat_total}</td>
+    <td><span class="eta-p">⏱ ${h.eta}m</span></td>
+    <td>${stBadge(h)}</td>
+    <td><button class="btn btn-d btn-xs" onclick="openAmbu(${h.id})">🚑</button></td>
+  </tr>`).join('')}</tbody>`;
+}
+function filterH(q){renderAllH(DB.hospitals.filter(h=>h.name.toLowerCase().includes(q.toLowerCase())||h.area.toLowerCase().includes(q.toLowerCase())));}
+function filterHType(t){renderAllH(t==='all'?DB.hospitals:DB.hospitals.filter(h=>h.type===t));}
+
+// ═══════════════════════════════════════════════
+// AMBULANCE DISPATCH
+// ═══════════════════════════════════════════════
+let selHospId=null;
+function openAmbu(id){
+  selHospId=id;
+  const h=DB.hospitals.find(x=>x.id===id);
+  document.getElementById('modalHospName').textContent=h?h.name:'—';
+  openModal('ambuModal');
+}
+function confirmDispatch(){
+  const name=document.getElementById('f_name').value.trim();
+  const phone=document.getElementById('f_phone').value.trim();
+  const etype=document.getElementById('f_etype').value;
+  const sev=document.getElementById('f_sev').value;
+  const addr=document.getElementById('f_addr').value.trim();
+  if(!name||!phone||!etype||!sev||!addr){toast('Fill all required fields','error','⚠️');return;}
+  const h=DB.hospitals.find(x=>x.id===selHospId);
+  DB.requests.unshift({id:`R-${1043+DB.requests.length}`,patient:name,age:parseInt(document.getElementById('f_age').value)||'?',phone,hospital:h?h.name:'—',emergency:etype,severity:sev,time:'Just now',status:'active',ambu:`AMB-${String(Math.floor(Math.random()*15+1)).padStart(2,'0')}`});
+  document.getElementById('reqBadge').textContent=DB.requests.filter(r=>r.status!=='completed').length;
+  closeModal('ambuModal');
+  toast(`🚑 Ambulance dispatched to ${name}! ETA ${h?h.eta:10} min`,'success','🚑');
+  ['f_name','f_age','f_phone','f_addr','f_notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_etype').value='';document.getElementById('f_sev').value='';
+  renderDashboard();
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════
+function renderAdmin(){
+  document.getElementById('adminGrid').innerHTML=DB.hospitals.map(h=>`
+  <div class="uc">
+    <div class="uc-title">${typeEmoji(h.type)} ${h.name} <span style="color:var(--t3);font-size:.68rem">· ${h.area}</span></div>
+    ${['icu','gen','vent','mat'].map(t=>`
+    <div class="bu-row">
+      <span class="bu-lbl">${{icu:'ICU',gen:'General',vent:'Ventilator',mat:'Maternity'}[t]}</span>
+      <div class="cc">
+        <button class="cb" onclick="chgBed(${h.id},'${t}',-1)">−</button>
+        <div class="cv" id="adm_${h.id}_${t}">${h[t+'_avail']}</div>
+        <button class="cb" onclick="chgBed(${h.id},'${t}',1)">+</button>
+      </div>
+    </div>`).join('')}
+    <div style="font-size:.68rem;color:var(--t3);margin:5px 0 7px">Totals: ICU ${h.icu_total} · Gen ${h.gen_total} · Vent ${h.vent_total} · Mat ${h.mat_total}</div>
+    <button class="usb" id="sav_${h.id}" onclick="saveHosp(${h.id})">💾 Save</button>
+  </div>`).join('');
+}
+function chgBed(id,t,d){
+  const h=DB.hospitals.find(x=>x.id===id);if(!h)return;
+  const k=t+'_avail',tk=t+'_total';
+  h[k]=Math.max(0,Math.min(h[tk],h[k]+d));
+  document.getElementById(`adm_${id}_${t}`).textContent=h[k];
+  updStatus(h);
+}
+function updStatus(h){const a=h.icu_avail+h.gen_avail,t=h.icu_total+h.gen_total;h.status=t>0?(a/t>.15?'available':a>0?'limited':'full'):'full';}
+function saveHosp(id){const h=DB.hospitals.find(x=>x.id===id);const b=document.getElementById(`sav_${id}`);b.textContent='✓ Saved!';b.classList.add('saved');setTimeout(()=>{b.textContent='💾 Save';b.classList.remove('saved');},1500);toast(`${h.name} updated`,'success','💾');renderDashboard();}
+function saveAll(){DB.hospitals.forEach(h=>updStatus(h));toast('All hospitals saved!','success','✅');renderDashboard();}
+function refreshAdmin(){DB.hospitals.forEach(h=>{['icu','gen','vent','mat'].forEach(t=>{h[t+'_avail']=Math.max(0,Math.min(h[t+'_total'],h[t+'_avail']+(Math.floor(Math.random()*3)-1)));});updStatus(h);});renderAdmin();renderDashboard();toast('Refreshed','info','🔄');}
+
+// ═══════════════════════════════════════════════
+// REQUESTS
+// ═══════════════════════════════════════════════
+function renderReqs(list){
+  document.getElementById('reqTable').innerHTML=`<thead><tr><th>ID</th><th>Patient</th><th>Emergency</th><th>Hospital</th><th>Ambulance</th><th>Severity</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>${list.map(r=>`<tr>
+    <td><span style="font-family:'Space Mono';font-size:.74rem;color:var(--accent)">${r.id}</span></td>
+    <td><div style="font-weight:600">${r.patient}</div><div style="font-size:.7rem;color:var(--t3)">${r.age}y · ${r.phone}</div></td>
+    <td style="font-size:.83rem;font-weight:600">${r.emergency}</td>
+    <td style="font-size:.8rem">${r.hospital}</td>
+    <td style="font-family:'Space Mono';font-size:.74rem;color:var(--orange)">${r.ambu}</td>
+    <td><span class="badge ${r.severity==='critical'?'red':r.severity==='serious'?'orange':'green'}">${r.severity==='critical'?'🔴':r.severity==='serious'?'🟠':'🟢'} ${r.severity}</span></td>
+    <td style="font-size:.74rem;color:var(--t3)">${r.time}</td>
+    <td><span class="badge ${r.status==='active'?'green':r.status==='pending'?'orange':'blue'}">${r.status}</span></td>
+    <td>${r.status==='pending'?`<button class="btn btn-p btn-xs" onclick="actReq('${r.id}')">Activate</button>`:r.status==='active'?`<button class="btn btn-s btn-xs" onclick="cmpReq('${r.id}')">Complete</button>`:`<span style="font-size:.7rem;color:var(--t3)">Done</span>`}</td>
+  </tr>`).join('')}</tbody>`;
+}
+function actReq(id){const r=DB.requests.find(x=>x.id===id);if(r){r.status='active';r.ambu=`AMB-${String(Math.floor(Math.random()*15+1)).padStart(2,'0')}`;}renderReqs(DB.requests);toast(`${id} activated`,'success','🚑');}
+function cmpReq(id){const r=DB.requests.find(x=>x.id===id);if(r)r.status='completed';renderReqs(DB.requests);toast(`${id} completed`,'success','✅');}
+function filterReqs(s){renderReqs(s==='all'?DB.requests:DB.requests.filter(r=>r.status===s));}
+
+// ═══════════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════════
+function renderAnalytics(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],vals=[38,55,47,70,62,44,51],max=Math.max(...vals);
+  document.getElementById('reqChart').innerHTML=days.map((d,i)=>{
+    const h=Math.round(vals[i]/max*130);
+    const cols=['#00c8f0','#9b5cff','#ff6b2b','#00e87a','#ffc93c','#00c8f0','#9b5cff'];
+    return `<div class="cbar" style="height:${h}px;background:${cols[i]}" data-l="${d}"><div class="ctip">${d}: ${vals[i]} reqs</div></div>`;
+  }).join('');
+  const types=[{l:'General',v:58,c:'#00c8f0'},{l:'ICU',v:24,c:'#9b5cff'},{l:'Maternity',v:12,c:'#ff6b2b'},{l:'Ventilator',v:6,c:'#00e87a'}];
+  let off=0;const r=52,circ=2*Math.PI*r;
+  const segs=types.map(t=>{const d=circ*t.v/100;const s=`<circle cx="65" cy="65" r="${r}" fill="none" stroke="${t.c}" stroke-width="15" stroke-dasharray="${d} ${circ-d}" stroke-dashoffset="${-off}" transform="rotate(-90 65 65)"/>`;off+=d;return s;}).join('');
+  document.getElementById('donutChart').innerHTML=`<svg width="130" height="130" viewBox="0 0 130 130"><circle cx="65" cy="65" r="${r}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="15"/>${segs}<text x="65" y="62" text-anchor="middle" fill="white" font-size="17" font-weight="800" font-family="Inter">${totalBeds()}</text><text x="65" y="74" text-anchor="middle" fill="#8ba8c8" font-size="8" font-family="Inter">BEDS AVAIL</text></svg><div class="dleg">${types.map(t=>`<div class="dli"><div class="ddot" style="background:${t.c}"></div><span>${t.l} · <strong>${t.v}%</strong></span></div>`).join('')}</div>`;
+  const top=[...DB.hospitals].sort((a,b)=>b.req_today-a.req_today).slice(0,5);
+  document.getElementById('anaTable').innerHTML=`<thead><tr><th>Hospital</th><th>Requests</th><th>Avg Response</th><th>Match Rate</th><th>Rating</th></tr></thead><tbody>${top.map(h=>{const mr=Math.round(85+Math.random()*12);return`<tr><td><div class="hn"><div class="ha ${haClass(h.type)}">${typeEmoji(h.type)}</div><div><div class="hn-name">${h.name}</div><div class="hn-sub">${h.area}</div></div></div></td><td><span style="font-weight:800;color:var(--accent)">${h.req_today}</span></td><td><span class="eta-p">⏱ ${h.avg_resp}m</span></td><td><div class="bv"><div class="bt" style="max-width:75px"><div class="bf bf-g" style="width:${mr}%"></div></div><span class="bc-v">${mr}%</span></div></td><td>⭐${h.rating}</td></tr>`;}).join('')}</tbody>`;
+}
+
+// ═══════════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════════
+function renderAlertsList(){
+  document.getElementById('alertsList').innerHTML=DB.alerts.map(a=>`<div class="ai ${a.type}"><span class="ai-icon">${a.icon}</span><div style="flex:1"><div class="ai-title">${a.title}</div><div class="ai-msg">${a.msg}</div></div><span class="ai-time">${a.time}</span></div>`).join('');
+}
+function clearAlerts(){document.querySelectorAll('.ai').forEach(e=>e.style.opacity='.4');document.getElementById('alBadge').textContent='0';toast('All cleared','success','✓');}
+
+// ═══════════════════════════════════════════════
+// MISC
+// ═══════════════════════════════════════════════
+function qs(q){if(!q)return;const m=DB.hospitals.filter(h=>h.name.toLowerCase().includes(q.toLowerCase())||h.area.toLowerCase().includes(q.toLowerCase()));if(m.length)toast(`${m[0].name} — ${m[0].icu_avail} ICU · ${m[0].eta}min ETA`,'info','🏥');}
+function exportJSON(){const b=new Blob([JSON.stringify({hospitals:DB.hospitals,ambulances:DB.ambulances,requests:DB.requests,exported:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='truemedi_data.json';a.click();toast('JSON exported','success','📥');}
+function exportCSV(){const h='id,name,type,area,icu_avail,icu_total,gen_avail,gen_total,vent_avail,vent_total,mat_avail,mat_total,eta,distance,status';const r=DB.hospitals.map(h=>[h.id,`"${h.name}"`,h.type,h.area,h.icu_avail,h.icu_total,h.gen_avail,h.gen_total,h.vent_avail,h.vent_total,h.mat_avail,h.mat_total,h.eta,h.distance,h.status].join(','));const b=new Blob([[h,...r].join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='truemedi_hospitals.csv';a.click();toast('CSV exported','success','📊');}
+function refreshData(){refreshAdmin();toast('Refreshed','info','🔄');}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('soverlay').classList.toggle('open');}
+
+// Ambulance animation on map
+function animateAmbulances(){
+  DB.ambulances.forEach(a=>{
+    if(a.status==='dispatched'||a.status==='returning'){
+      a.mapX+=((Math.random()-.5)*1.5);a.mapY+=((Math.random()-.5)*1.5);
+      a.mapX=Math.max(5,Math.min(95,a.mapX));a.mapY=Math.max(5,Math.min(95,a.mapY));
+    }
+  });
+  if(document.getElementById('view-map').classList.contains('active')) renderMap();
+}
+
+// Real-time sim
+setInterval(()=>{
+  DB.hospitals.sort(()=>.5-Math.random()).slice(0,3).forEach(h=>{
+    const t=['icu','gen'][Math.floor(Math.random()*2)];
+    h[t+'_avail']=Math.max(0,Math.min(h[t+'_total'],h[t+'_avail']+(Math.random()>.45?1:-1)));
+    updStatus(h);
+  });
+  document.getElementById('sv-b').textContent=totalBeds();
+  if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+},8000);
+setInterval(animateAmbulances,3000);
+
+// INIT
+renderDashboard();
+renderSearch(DB.hospitals);
+</script>
+</body>
+</html>
